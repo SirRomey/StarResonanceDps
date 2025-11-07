@@ -1,32 +1,43 @@
-name: .NET Desktop Publish
+name: .NET Desktop Build
+
 on:
   push:
-    branches: ["master"]
+    branches: [ "master" ]
   pull_request:
-    branches: ["master"]
-  workflow_dispatch: # <-- Add this line for manual runs
+    branches: [ "master" ]
+
 jobs:
-  publish:
+  build:
     runs-on: windows-latest
+    
     strategy:
       matrix:
-        configuration: [Release] # Only Release
+        configuration: [Release]  # Only build Release, not Debug
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
-      - name: Restore dependencies
-        run: dotnet restore StarResonanceDpsAnalysis.sln
-      - name: Publish solution
-        run: dotnet publish StarResonanceDpsAnalysis.sln --configuration ${{ matrix.configuration }} --runtime win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
-      - name: Run tests
-        run: dotnet test StarResonanceDpsAnalysis.sln --configuration ${{ matrix.configuration }} --no-build
-      - name: Upload EXE artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: StarResonanceDps-EXE-${{ github.sha }}
-          path: ./publish/*.exe
-          retention-days: 30 # Keeps it for 30 days
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 8
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore StarResonanceDpsAnalysis.sln
+
+    - name: Build solution
+      run: dotnet build StarResonanceDpsAnalysis.sln --configuration ${{ matrix.configuration }} --no-restore
+
+    - name: Run tests
+      run: dotnet test StarResonanceDpsAnalysis.sln --configuration ${{ matrix.configuration }} --no-build
+
+    - name: Publish WPF Application
+      run: dotnet publish StarResonanceDpsAnalysis.WPF/StarResonanceDpsAnalysis.WPF.csproj --configuration ${{ matrix.configuration }} --runtime win-x64 --self-contained true --output ./publish
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: StarResonanceDpsAnalysis-WPF-${{ matrix.configuration }}-win-x64
+        path: ./publish/**/*
+        retention-days: 30
