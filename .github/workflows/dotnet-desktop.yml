@@ -1,33 +1,31 @@
-name: .NET Desktop Build
-
+name: .NET Desktop Publish
 on:
   push:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
-
 jobs:
-  build:
+  publish:
     runs-on: windows-latest
-    
     strategy:
       matrix:
-        configuration: [Release]  # Only build Release, not Debug
-
+        configuration: [Release]  # Only Release
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
     - name: Setup .NET 8
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
-
     - name: Restore dependencies
       run: dotnet restore StarResonanceDpsAnalysis.sln
-
-    - name: Build solution
-      run: dotnet build StarResonanceDpsAnalysis.sln --configuration ${{ matrix.configuration }} --no-restore
-
+    - name: Publish solution
+      run: dotnet publish StarResonanceDpsAnalysis.sln --configuration ${{ matrix.configuration }} --runtime win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
     - name: Run tests
       run: dotnet test StarResonanceDpsAnalysis.sln --configuration ${{ matrix.configuration }} --no-build
+    - name: Upload EXE artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: StarResonanceDps-EXE-${{ github.sha }}
+        path: ./publish/*.exe
+        retention-days: 30  # Keeps it for 30 days
